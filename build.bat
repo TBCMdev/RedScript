@@ -1,0 +1,1 @@
+g++ main.cpp -o rscript.exe ./src/*.cpp -Isrc
