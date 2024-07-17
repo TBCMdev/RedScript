@@ -7,6 +7,7 @@
 #include <fstream>
 #include "token.h"
 #include "util.h"
+#include "bst.hpp"
 
 #define MCMETA(VER) (std::string("{\"pack\":{\"pack_format\": ") + VER + ",\"description\": \"A programming language used for abstracting minecraft's functionalities.\"}}")
 #define DATAPACK_FOLDER(W) (std::string(getenv("APPDATA")) + "/Roaming/.minecraft/saves/" + W + "/datapacks/")
@@ -15,6 +16,12 @@
 #define COMPILE_ERROR(_ec) {__STACK_TRACE.ec = _ec;__STACK_TRACE.at = _At;  return __STACK_TRACE;}
 
 
+typedef struct tvoidp
+{
+    void* v;
+    int   t;
+};
+typedef bst<tvoidp> voidnode;
 namespace mcf
 {
     typedef struct byte_code_instruction
@@ -26,6 +33,7 @@ namespace mcf
     {
         std::vector<byte_code_instruction> _Instructions;
     };
+
     typedef struct command
     {
         std::string name;
@@ -48,6 +56,10 @@ namespace mcf
     void fAddCommand(mcfunction&, command&);
     void pAddFunction(rscprogram&, mcfunction&);
     void writemcp(rscprogram&);
+    int findTrailingChar(char, ltoken*, int, int);
     lex_error compileRsc(ltoken*, int, rscprogram*);
     lex_error buildRsc(rscprogram&);
+
+
+    voidnode mexpreval(ltoken*, int, int, int, lex_error*);
 }

@@ -118,3 +118,25 @@ lex_error mcf::buildRsc(rscprogram& p)
 
     return lex_error{};
 }
+int findTrailingChar(char c, ltoken* tokens, int begin, int len)
+{
+    std::string repr;
+    while((repr = tokens[++begin]._Repr)[0] != c || repr.length() > 1);
+
+    return begin == len ? -1 : begin; 
+}
+voidnode mexpreval(ltoken* tokens, int len, int begin, int end, lex_error* out)
+{
+    // when this is called, the index of begin should be the first token in the expression, or a '('.
+    voidnode tree;
+
+    int _At = begin;
+
+    if (tokens[_At]._Type == OPEN_BR)
+    {
+        int c = findTrailingChar(')', tokens, begin, len);
+        tree._Left = voidnode::makeNode(mexpreval(tokens, len, begin + 1, c, out));
+    }
+    // TODO
+
+}
