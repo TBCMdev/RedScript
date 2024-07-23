@@ -30,12 +30,14 @@ void elprint(lex_error error, char* unlexed_c)
     int at = error.at;
     
     while (--at > 0 && unlexed_c[at] != '\n');
-    int lineStart = at;
+    int lineStart = (at > 0) ? at + 1 : 0;
+
+    at = error.at;
     while (++at < len && unlexed_c[at] != '\n');
     int lineEnd = at;
 
     int lineLength = lineEnd - lineStart;
-    char* line = (char*)malloc(lineLength * sizeof(char) + 1);
+    char* line = (char*)malloc(lineLength + 1);
 
     memcpy(line, &unlexed_c[lineStart], lineLength);
     line[lineLength] = '\0';
@@ -46,7 +48,7 @@ void elprint(lex_error error, char* unlexed_c)
     }
     char errcn[32] = {0};
     errstr(error.ec, errcn, 32);
-    printf("\n%s Error(em-%d):\n", errcn, abs(error.ec));
+    printf("\n%s Error(rsc-%d) (at: %d, from: %d -> to: %d):\n", errcn, abs(error.ec), at, lineStart, lineEnd);
     printf("\t%s\n", line); 
     printf("\t%*s^ HERE\n\n", error.cpos, "");
 }

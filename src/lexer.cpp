@@ -19,7 +19,8 @@ lex_error _lex(ltoken *_gout, char *content, int clen, int *lenOut)
         if(c == '\t') continue;
         if (c == '\n')
         {
-            _gout[_TokenCount++] = {NULL, NEWLINE, 0, __STACK_TRACE};
+            // this line is for ember, as we dont have semi colons.
+            // _gout[_TokenCount++] = {NULL, NEWLINE, 0, __STACK_TRACE};
 
             __STACK_TRACE.lineindex = i;
             __STACK_TRACE.line++;
@@ -32,7 +33,7 @@ lex_error _lex(ltoken *_gout, char *content, int clen, int *lenOut)
             _GenLength *= 2;
             _gout = (ltoken*)realloc(_gout, _GenLength);
         }
-        else if (isalpha(c) || c == '_')
+        if (isalpha(c) || c == '_')
         {
             int l = i;
             char n;
@@ -51,7 +52,7 @@ lex_error _lex(ltoken *_gout, char *content, int clen, int *lenOut)
             int _ExtraInfo = -1;
             token_type _t = UNKNOWN;
 
-            if ((_ExtraInfo = istypedef(_Word)) > 0)
+            if ((_ExtraInfo = istypedef(_Word)) != -1)
                 t._Type = TYPE_DEF;
             else if ((_t = iskwd(_Word, &_ExtraInfo)) != UNKNOWN)
                 t._Type = _t;
@@ -134,6 +135,15 @@ lex_error _lex(ltoken *_gout, char *content, int clen, int *lenOut)
 
             _gout[_TokenCount++] = {_Num, isFloat ? FLOAT_LITERAL : INTEGER_LITERAL, 0, __STACK_TRACE};
         }
+        else if (c == '@')
+        {
+            char *ch = (char *)malloc(sizeof(char) * 3);
+            ch[0] = c;
+            ch[1] = content[++i];
+            ch[2] = '\0';
+            _gout[_TokenCount++] = {ch, SELECTOR, c, __STACK_TRACE};
+
+        }
         else if (c != ' ')
         {
             char *ch = (char *)malloc(sizeof(char) * 2);
@@ -163,6 +173,21 @@ lex_error _lex(ltoken *_gout, char *content, int clen, int *lenOut)
                 case ';':
                     type = SEMI_COLON;
                     break;
+                case '=':
+                    type = ASSIGN;
+                    break;
+                case '#':
+                    type = HASHTAG;
+                    break;
+                case ',':
+                    type = COMMA;
+                    break;
+                case '[':
+                    type = OPEN_SQBR;
+                    break;
+                case ']':
+                    type = CLOSED_SQBR;
+                    break;                
             }
 
             _gout[_TokenCount++] = {ch, type, c, __STACK_TRACE};

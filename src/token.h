@@ -18,14 +18,20 @@ typedef enum token_type_t
     OPERATOR,
     CHARACTER,
     OPEN_BR,
+    OPEN_SQBR,
     OPEN_CBR,
     CLOSED_BR,
     CLOSED_CBR,
+    CLOSED_SQBR,
     NEGATOR,
 
     NEWLINE,
     SEMI_COLON,
+    COMMA,
     COLON,
+    ASSIGN,
+    HASHTAG,
+    SELECTOR,
     UNKNOWN,
 } token_type;
 

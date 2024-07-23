@@ -63,10 +63,10 @@ enum class bst_operator
 
 template<typename _N>
 struct bst_node
-{
-    using makeNode = std::make_shared<std::variant<_N, bst<_N>>;
+{ 
     std::shared_ptr<std::variant<_N, bst_node<_N>>> _Left;
-    bst_operator _Operator = bst_operator::NONE;
+    // root operator is used when adding two root nodes.
+    bst_operator _Operator = bst_operator::NONE, _RootOperator = bst_operator::NONE;
     std::shared_ptr<std::variant<_N, bst_node<_N>>> _Right;
 
 

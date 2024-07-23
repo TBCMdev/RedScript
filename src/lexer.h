@@ -10,7 +10,7 @@
 
 #define INITIAL_GEN_CAPACITY 256
 
-#define IS_OP(x) (x == '=' || x == '!' || x == '+' || x == '-' || x == '/' || x == '*' || x == '%')
+#define IS_OP(x) (x == '!' || x == '+' || x == '-' || x == '/' || x == '*' || x == '%')
 
 #define LEX_IFFAIL(mallocd) if (mallocd == NULL) {free(mallocd);__STACK_TRACE.ec = MEMORY_ERROR; return __STACK_TRACE;}
 #define LEX_ERROR(_ec) {__STACK_TRACE.ec = _ec;__STACK_TRACE.at = i;  return __STACK_TRACE;}

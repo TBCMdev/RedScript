@@ -2,8 +2,15 @@
 #include "file.h"
 #include "mcf.hpp"
 
+#include <filesystem>
+
 int main(int argc, char** argv)
 {
+    if(argc < 3)
+    {
+        std::cout << "[ERROR] arguments must be: rscript <path_to_file.rsc> <world_name_to_operate_on>\n";
+        return EXIT_FAILURE;
+    }
     char* _FileBuffer;
 
     sfread(argv[1], &_FileBuffer);
@@ -28,9 +35,22 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    mcf::rscprogram program = mcf::compileRsc(tokens);
+    mcf::rscprogram* program;
+    lex_error status = mcf::compileRsc(tokens, *tokenCount, program);
+    if(status.ec < 0)
+    {
+        elprint(status, _FileBuffer);
 
-    lex_error status = mcf::buildRsc(program);
+        return status.ec;
+    }
+    if(!program)
+    {
+        printf("Could not compile program.\n");
+        return status.ec;
+    }
+    program->_FileNameWithoutExtention = std::filesystem::path(argv[1]).stem().string();
+    program->_WorldName = argv[2];
+    status = mcf::buildRsc(*program);
     if(status.ec < 0)
     {
         elprint(status, _FileBuffer);

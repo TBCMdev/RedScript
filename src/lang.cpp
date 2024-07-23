@@ -8,7 +8,7 @@ int istypedef(char* c)
     if(seq(c, "unknown")) return VOID_TYPE_DEF_ID;
     // if(seq(c, "char")) return CHAR_TYPE_DEF_ID;
 
-    return 0;
+    return -1;
 
 }
 token_type iskwd(char* c, int* info)

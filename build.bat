@@ -1,1 +1,1 @@
-g++ main.cpp -o rscript.exe ./src/*.cpp -Isrc
+g++ main.cpp ./src/*.cpp ./dependencies/nbt/*.cpp -I src -I dependencies/nbt -o rscript.exe -static -g
