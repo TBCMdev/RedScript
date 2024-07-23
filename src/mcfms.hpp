@@ -8,15 +8,15 @@
 #define MAPPING_SIG std::vector<std::string>(*)(std::vector<voidnode>)
 #define MAPPING_SIGF(F) std::vector<std::string>(*F)(std::vector<voidnode>)
 #define FUNCTORCOLLECTION static inline std::unordered_map<const char*, MAPPING_SIG>
+
 FUNCTORCOLLECTION _rs_Mappings;
 
 constexpr void registerMapping(const char* name, MAPPING_SIGF(func)) {
     _rs_Mappings[name] = func;
 }
-
 #define CXPR constexpr 
 
-#define MAPPING(x) CXPR auto m_##x(std::vector<voidnode>) -> std::vector<std::string>
+#define MAPPING(x) auto m_##x(std::vector<voidnode>) -> std::vector<std::string>
 #define MDEF(fName) \
     inline constexpr bool fName##_registered = (registerMapping(#fName, &m_##fName), true); \
     MAPPING(fName)
