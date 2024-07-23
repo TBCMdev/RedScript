@@ -9,7 +9,7 @@
 #define INTERNAL_MAPPING(x) CXPR std::vector<std::string _inb_m_##x(std::vector<voidnode>);
 // need function to evaluate void node, store result in register,
 // and then return that register at compile time to all mappings.
-CXPR mcf_register evalVoidNode(voidnode&);
+CXPR mcf::mcf_register evalVoidNode(voidnode&);
 
 MAPPING(exitProgram);
 MAPPING(createLocalVariable);
