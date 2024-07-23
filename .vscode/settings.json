@@ -68,6 +68,7 @@
         "unordered_map": "cpp",
         "variant": "cpp",
         "xhash": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "functional": "cpp"
     }
 }
