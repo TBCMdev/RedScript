@@ -88,7 +88,7 @@ void mcf::writemcp(rscprogram &pro)
         std::string out;
         for (auto &instruction : func._Instructions)
         {
-            out += instruction.name + " " + vecunpack(instruction.parameters) + "\n";
+            out += instruction.name + " " + instruction.content + "\n";
         }
         std::string fname = func.name + ".mcfunction";
         std::filesystem::path fpath = funcspath / fname;
@@ -104,7 +104,7 @@ void _debug_printVoidNodeBst(voidnode &vn)
         return;
     if (vn._Left->index() == 0) // then it is a typed-void-pointer
     {
-        tvoidp tvoid = std::get<0>(*vn._Left);
+        shared_tvoidp tvoid = std::get<0>(*vn._Left);
         std::cout << '{' << tvoid.t << ',' << tvoid.v << "} ";
     }
     else
@@ -137,7 +137,7 @@ void _debug_printVoidNodeBst(voidnode &vn)
 
     if (vn._Right->index() == 0) // then it is a typed-void-pointer
     {
-        tvoidp tvoid = std::get<0>(*vn._Right);
+        shared_tvoidp tvoid = std::get<0>(*vn._Right);
         std::cout << '{' << tvoid.t << ',' << tvoid.v << "}\n";
     }
     else

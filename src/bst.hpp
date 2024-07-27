@@ -4,6 +4,7 @@
 #pragma once
 #include <memory>
 #include <variant>
+#include <string>
 
 enum class bst_operator
 {
@@ -20,6 +21,24 @@ enum class bst_operator
 
     NONE
 };
+inline std::string bst_operator_str(bst_operator&& op)
+{
+    switch(op)
+    {
+        case bst_operator::ADD: return "+"; 
+        case bst_operator::SELF_ADD: return "+="; 
+        case bst_operator::SUB: return "-"; 
+        case bst_operator::SELF_SUB: return "-="; 
+        case bst_operator::MUL: return "*"; 
+        case bst_operator::SELF_MUL: return "*="; 
+        case bst_operator::DIV: return "/"; 
+        case bst_operator::SELF_DIV: return "/="; 
+        case bst_operator::MOD: return "%";
+        case bst_operator::SELF_MOD: return "%=";  
+    }
+    return "";
+}
+
 
 // Utility to find the index of a type in a variadic template pack
 // template<typename T, typename... Ts>
