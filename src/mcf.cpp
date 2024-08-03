@@ -1,4 +1,5 @@
 #include "mcf.hpp"
+#include "mcfms.hpp"
 
 void create_level_dat(const std::string &path)
 {
@@ -41,6 +42,139 @@ bool mcf::createVoidWorld(std::filesystem::path &p)
     {
         return false;
     }
+}
+
+mcf::mcfunction mcf::fbc_to_mcfunc(function_byte_code &fbc, std::unordered_map<std::string, function_byte_code> &functions, lex_error *out)
+{
+    mcf::mcfunction function;
+
+    int _S = fbc._Instructions.size();
+
+    for (int i = 0; i < _S; i++)
+    {
+        mcf::byte_code_instruction &instruction = fbc._Instructions[i];
+        switch (instruction._id)
+        {
+        case mcf::rs_instructions::CREATE:
+        {
+            if (instruction._Parameters.size() != 3)
+                warn("Invalid byte code instruction parameter count received. If not resolved, your program will not behave normally.");
+            auto &p0 = instruction._Parameters[0], p1 = instruction._Parameters[1], p2 = instruction._Parameters[2];
+            if (p0.t != STRING_TYPE_ID ||
+                p1.t != INT_TYPE_ID ||
+                p2.t != INT_TYPE_ID)
+            {
+                warn("Invalid byte code instruction parameter types received. This is an internal error that has not been checked as a result of invalid code fed to the compiler.");
+                return function;
+            }
+
+            int p2val = *(int *)p2.v.get();
+            mcf::rs_variable tempv = {*(std::string *)p0.v.get(),
+                                      typedef_info{
+                                          (*(int *)p1.v.get()),
+                                          (p2val > 0),
+                                          p2val}};
+
+            auto instructions = createLocalVariable(tempv);
+            function._Instructions.insert(function._Instructions.end(), instructions.begin(), instructions.end());
+            break;
+        }
+        case mcf::rs_instructions::ASSIGN:
+        {
+            if (instruction._Parameters.size() != 2)
+                warn("Invalid byte code instruction parameter count received. If not resolved, your program will not behave normally.");
+            auto &p0 = instruction._Parameters[0], p1 = instruction._Parameters[1];
+            
+            if (p0.t != STRING_TYPE_ID)
+            {
+                warn("Invalid byte code instruction parameter types received. This is an internal error that has not been checked as a result of invalid code fed to the compiler.");
+                return function;
+            }
+
+            std::string &name = *(std::string *)p0.v.get();
+
+            switch(p1.t)
+            {
+
+                case UNEVALUATED_NODE_TREE_ID:
+                {
+                    voidnode &val = *(voidnode*)p1.v.get();
+
+                    auto instructions = assignVariableValue(name, val);
+                    function._Instructions.insert(function._Instructions.end(), instructions.begin(), instructions.end());
+                    break;
+                }
+                default:
+                {
+                    auto instructions = assignVariableValue(name, p1);
+                    function._Instructions.insert(function._Instructions.end(), instructions.begin(), instructions.end());
+                    break;
+                }
+            }
+            break;
+        }
+        case mcf::rs_instructions::CALL:
+        {
+            if (instruction._Parameters.size() < 1)
+                warn("Invalid byte code instruction parameter count received. If not resolved, your program will not behave normally.");
+            std::string name = *(std::string *)instruction._Parameters[0].v.get();
+
+            std::unordered_map<std::string, mcf::function_byte_code>::iterator _function;
+
+            if ((_function = functions.find(name)) == functions.end())
+            {
+                out->ec = UNEXPECTED_TOKEN;
+                return function;
+            }
+
+            // function._SegmentBreaks.push_back(i);
+            auto _begin = instruction._Parameters.begin() + 1;
+            auto _end = instruction._Parameters.end();
+
+            std::vector<shared_tvoidp> justParams;
+            std::copy(_begin, _end, std::back_inserter(justParams));
+
+            CMD_LIST prep;
+            if(_function->second._Inbuilt)
+            {
+                std::string paramsOut;
+                prep = prepareFunctionCall(_function->second, justParams, &paramsOut);
+                
+                function._Instructions.insert(function._Instructions.end(), prep.begin(), prep.end());
+
+                // call the respected function with the static parameters
+                // todo , how to do dynamic variable parameters? 
+                function._Instructions.push_back({_function->first, paramsOut});
+                // function._Instructions.push_back({"function", "rs_garbage"});
+                
+                break;
+
+            }
+            else 
+            {
+                prep = prepareFunctionCall(_function->second, justParams, nullptr);
+
+                function._Instructions.insert(function._Instructions.end(), prep.begin(), prep.end());
+
+                // call the respected function with the parameter count
+                function._Instructions.push_back({"function", _function->first + ' ' + std::to_string(instruction._Parameters.size() - 1)});
+                function._Instructions.push_back({"function", "rs_garbage"});
+            }
+            break;
+        }
+        case mcf::rs_instructions::RET:
+        {
+            // we can assign register ret of the value to return, but how do we stop execution?
+            break;
+        }
+        default:
+        {
+            warn("unknown/unsupported byte code instruction received.");
+            break;
+        }
+        }
+    }
+    return function;
 }
 
 std::filesystem::path mcf::createDatapack(const std::string &world, const std::string &name)
@@ -86,15 +220,40 @@ void mcf::writemcp(rscprogram &pro)
     for (auto &func : pro._Functions)
     {
         std::string out;
-        for (auto &instruction : func._Instructions)
+        int i = 0;
+    segWrite:
+        bool seg = false;
+        int segc = 0;
+        for (; i < func._Instructions.size(); i++)
         {
+            auto &instruction = func._Instructions[i];
+
             out += instruction.name + " " + instruction.content + "\n";
+
+            if (std::count(func._SegmentBreaks.begin(), func._SegmentBreaks.end(), i) == 1)
+            {
+                // we have a segment at this line
+                seg = true;
+                break;
+            }
         }
-        std::string fname = func.name + ".mcfunction";
+        std::string fname;
+        if (!seg)
+            fname = func.name + ".mcfunction";
+        else
+        {
+            fname = func.name + "-" + std::to_string(segc++) + ".mcfunction";
+        }
         std::filesystem::path fpath = funcspath / fname;
         std::ofstream ofs(fpath);
         ofs << out;
         ofs.close();
+
+        if (seg)
+        {
+            seg = false;
+            goto segWrite;
+        }
     }
 }
 
@@ -146,7 +305,7 @@ void _debug_printVoidNodeBst(voidnode &vn)
         _debug_printVoidNodeBst(std::get<1>(*vn._Right));
     }
 }
-std::vector<mcf::rs_variable> mcf::parseFunctionParameters(ltoken *tokens, int& _At, std::vector<std::string> &_Types, lex_error *out)
+std::vector<mcf::rs_variable> mcf::parseFunctionParameters(ltoken *tokens, int &_At, std::vector<std::string> &_Types, lex_error *out)
 {
     std::vector<mcf::rs_variable> parameters;
 
@@ -186,16 +345,18 @@ std::vector<mcf::rs_variable> mcf::parseFunctionParameters(ltoken *tokens, int& 
 
         if (tokens[_At]._Type != COMMA)
             return parameters;
+        
+        _At++;
     };
 }
-lex_error mcf::compileRsc(ltoken *tokens, int tokenCount, mcf::rscprogram *out)
+lex_error mcf::compileRsc(ltoken *tokens, int tokenCount, std::shared_ptr<mcf::rscprogram> &out)
 {
     lex_error __STACK_TRACE = {0, 0, 0, 0, 0};
-
+    // todo, function calls
     int _At = -1;
 
     // the index of each of the elements here corrosponds to their type ID.
-    std::vector<std::string> _Types = {"unknown", "int", "string", "float", "object"};
+    std::vector<std::string> _Types = {"void", "int", "string", "float", "object"};
     std::unordered_map<std::string, function_byte_code> _Functions;
 
     // variables, and their values as voidnode bsts, so that we can parse them later.
@@ -211,17 +372,17 @@ lex_error mcf::compileRsc(ltoken *tokens, int tokenCount, mcf::rscprogram *out)
         {
         case OPEN_CBR:
             _ScopeCounter++;
-            break;
+            continue;
         case CLOSED_CBR:
         {
 
             _ScopeCounter--;
-            if(_ScopeCounter == 0)
+            if (_ScopeCounter == 0)
             {
                 _Functions.insert({currentFunction->_Name, *currentFunction});
                 currentFunction.reset();
             }
-            break;
+            continue;
         }
         case SEMI_COLON:
             continue;
@@ -240,12 +401,13 @@ lex_error mcf::compileRsc(ltoken *tokens, int tokenCount, mcf::rscprogram *out)
                     COMPILE_ERROR(__STACK_TRACE.ec);
                 currentFunction = std::make_shared<function_byte_code>();
                 currentFunction->_Name = name;
+                currentFunction->_Parameters = parameters;
                 auto &vars = currentFunction->_Variables;
                 for (rs_variable parameter : parameters)
                 {
-                    if (std::count_if(vars.begin(), vars.end(), [&parameter](mcf::rs_variable v){
-                        if(parameter.name == v.name) return 1; else return 0;
-                    }) != 0)
+                    if (std::count_if(vars.begin(), vars.end(), [&parameter](mcf::rs_variable v)
+                                      {
+                        if(parameter.name == v.name) return 1; else return 0; }) != 0)
                         COMPILE_ERROR(NAME_ALREADY_EXISTS);
 
                     currentFunction->_Instructions.push_back(mcf::byte_code_instruction{mcf::rs_instructions::CREATE,
@@ -253,8 +415,20 @@ lex_error mcf::compileRsc(ltoken *tokens, int tokenCount, mcf::rscprogram *out)
                                                                                          shared_tvoidp(parameter.type._TypeID, INT_TYPE_ID),
                                                                                          shared_tvoidp(parameter.type.arrayDimension, INT_TYPE_ID)}});
                 }
-                if(tokens[++_At]._Type != OPEN_CBR) COMPILE_ERROR(EXPECTED_FUNCTION_BODY);
+                if (tokens[++_At]._Type != OPEN_CBR)
+                {
+                    if (tokens[_At]._Type == SEMI_COLON)
+                    {
+                        // we are null defining the function, it is inbuilt
+                        currentFunction->_Instructions.clear();
+                        currentFunction->_Inbuilt = true;
+                        _ScopeCounter--;
+                        _Functions.insert({currentFunction->_Name, *currentFunction});
+                        currentFunction.reset();
+                    }else COMPILE_ERROR(EXPECTED_FUNCTION_BODY);
+                }
 
+                _ScopeCounter++; // we are in function body.
             }
             break;
         }
@@ -304,7 +478,7 @@ lex_error mcf::compileRsc(ltoken *tokens, int tokenCount, mcf::rscprogram *out)
                 {
                     COMPILE_ERROR(__STACK_TRACE.ec);
                 }
-                _At = out;
+                _At = out - 1;
                 // std::cout << "vn-root:\n";
                 // _debug_printVoidNodeBst(expression);
                 std::string name = t->_Repr;
@@ -315,27 +489,27 @@ lex_error mcf::compileRsc(ltoken *tokens, int tokenCount, mcf::rscprogram *out)
                     if (_GlobalVariables.find(name) != _GlobalVariables.end())
                         COMPILE_ERROR(NAME_ALREADY_EXISTS);
                     _GlobalVariables.insert({name, std::pair<mcf::rs_variable, std::shared_ptr<voidnode>>{mcf::rs_variable{name,
-                                                                    {_TypeID, (arrayCount > 0), arrayCount}},
-                                                   std::make_shared<voidnode>(expression)}});
+                                                                                                                           {_TypeID, (arrayCount > 0), arrayCount}},
+                                                                                                          std::make_shared<voidnode>(expression)}});
                 }
                 else
                 {
                     // local variable
                     auto &vars = currentFunction->_Variables;
-                    if (std::count_if(vars.begin(), vars.end(), [&name](mcf::rs_variable v){
-                        if(name == v.name) return 1; else return 0;
-                    }) != 0)
+                    if (std::count_if(vars.begin(), vars.end(), [&name](mcf::rs_variable v)
+                                      {
+                        if(name == v.name) return 1; else return 0; }) != 0)
                         COMPILE_ERROR(NAME_ALREADY_EXISTS);
                     currentFunction->_Instructions.push_back({mcf::rs_instructions::CREATE,
                                                               {shared_tvoidp(name, STRING_TYPE_ID),
-                                                               shared_tvoidp((arrayCount > 0), INT_TYPE_ID),
+                                                               shared_tvoidp(_TypeID, INT_TYPE_ID),
                                                                shared_tvoidp(arrayCount, INT_TYPE_ID)}});
 
                     currentFunction->_Instructions.push_back({mcf::rs_instructions::ASSIGN,
                                                               {shared_tvoidp(name, STRING_TYPE_ID),
                                                                shared_tvoidp(expression, UNEVALUATED_NODE_TREE_ID)}});
                     currentFunction->_Variables.push_back(mcf::rs_variable{name,
-                                                                    {_TypeID, (arrayCount > 0), arrayCount}});
+                                                                           {_TypeID, (arrayCount > 0), arrayCount}});
                 }
 
                 break;
@@ -343,7 +517,7 @@ lex_error mcf::compileRsc(ltoken *tokens, int tokenCount, mcf::rscprogram *out)
             case OPEN_BR:
             {
                 // could be function or function call
-                if(currentFunction == nullptr)
+                if (currentFunction == nullptr)
                 {
                     // global function call, called before entry point, do we allow?
                     COMPILE_ERROR(UNSUPPORTED_FEATURE);
@@ -354,21 +528,17 @@ lex_error mcf::compileRsc(ltoken *tokens, int tokenCount, mcf::rscprogram *out)
                 if (_Functions.find(name) == _Functions.end())
                     COMPILE_ERROR(UNDEFINED_TOKEN_IDENTIFIER);
                 std::vector<voidnode> vns = m_evalparams(tokens, tokenCount, ++_At, &__STACK_TRACE);
-                if (__STACK_TRACE.ec != 0)
-                    COMPILE_ERROR(__STACK_TRACE.ec);
+                if (__STACK_TRACE.ec != 0) COMPILE_ERROR(__STACK_TRACE.ec);
 
-                for (voidnode& vn : vns)
+                std::vector<shared_tvoidp> callParameters{shared_tvoidp(name, STRING_TYPE_ID)};
+
+                for (voidnode &vn : vns)
                 {
-                    currentFunction->_Instructions.push_back({rs_instructions::PARAM, 
-                    {shared_tvoidp(0, INT_TYPE_ID), 
-                     shared_tvoidp(vn, UNEVALUATED_NODE_TREE_ID)
-                    }});
+                    // we already know the type from the function sig
+                    callParameters.push_back(shared_tvoidp(vn, UNEVALUATED_NODE_TREE_ID));
                 }
                 currentFunction->_Instructions.push_back({rs_instructions::CALL,
-                {
-                    shared_tvoidp(name, STRING_TYPE_ID),
-                    shared_tvoidp((int)vns.size(), INT_TYPE_ID)
-                }});
+                                                          callParameters});
                 break;
             }
             case SEMI_COLON:
@@ -378,21 +548,25 @@ lex_error mcf::compileRsc(ltoken *tokens, int tokenCount, mcf::rscprogram *out)
         }
         }
     }
-    *out = rscprogram(); // TODO
+    out = std::make_shared<rscprogram>(); // TODO
+    auto &sdei = out->_StdDeclEntryIndicies;
 
-    auto& sdei = out->_StdDeclEntryIndicies;
-
-    if(_Functions.find("run") != _Functions.end()) sdei.push_back(0);
-
-    if(sdei.size() == 0)
+    _At--; // goto last token.
+    if (_Functions.find("run") != _Functions.end())
+        sdei.push_back(0);
+    if (sdei.size() == 0)
         COMPILE_ERROR(NO_ENTRY_POINT);
 
     // first one specified.
     out->_ChosenEntryIndex = sdei[0];
 
-    for(auto& function : _Functions)
+    for (auto &function : _Functions)
     {
+        if(function.second._Inbuilt) continue;
         
+        out->_Functions.push_back(fbc_to_mcfunc(function.second, _Functions, &__STACK_TRACE));
+        if (__STACK_TRACE.ec != 0)
+            COMPILE_ERROR(__STACK_TRACE.ec);
     }
 
     return __STACK_TRACE;
@@ -411,32 +585,32 @@ int mcf::findTrailingChar(char c, ltoken *tokens, int begin, int len)
 
     return begin == len - 1 ? -1 : begin;
 }
-std::vector<voidnode> mcf::m_evalparams(ltoken* tokens, int len, int& _At, lex_error* out)
+std::vector<voidnode> mcf::m_evalparams(ltoken *tokens, int len, int &_At, lex_error *out)
 {
     // when this is called, the index of begin should be the first token in the first parameter.
     std::vector<voidnode> vns;
     do
     {
         int end = _At;
-        while(end + 1 < len && tokens[++end]._Type != COMMA);
+        while (end + 1 < len && tokens[++end]._Type != COMMA)
+            ;
 
-        if(end == len - 1) 
+        if (end == len - 1)
             return vns;
 
         voidnode vn = mcf::mexpreval(tokens, len, _At, end, out, &_At);
         vns.push_back(vn);
 
-    } while (tokens[_At++]._Type == COMMA);
-    
-    if(tokens[--_At]._Type != CLOSED_BR)
+    } while (tokens[++_At]._Type == COMMA);
+
+    if (tokens[--_At]._Type != CLOSED_BR)
     {
         COMPILE_ERROR_P(out, UNEXPECTED_TOKEN);
     }
 
     return vns;
-
 }
-voidnode mcf::mexpreval(ltoken *tokens, int len, int begin, int end, lex_error *out, int* counterOut)
+voidnode mcf::mexpreval(ltoken *tokens, int len, int begin, int end, lex_error *out, int *counterOut)
 {
     // when this is called, the index of begin should be the first token in the expression, or a '('.
     int _At = begin;
@@ -444,11 +618,11 @@ voidnode mcf::mexpreval(ltoken *tokens, int len, int begin, int end, lex_error *
     bool _Side = false; // left 0 right 1
     voidnode vncurrent;
 
-
-    // TODO add function support
+    // TODO add function support !!!!
 evaluate:
-    if(_At >= end) return vncurrent;
-    
+    if (_At >= end)
+        return vncurrent;
+
     ltoken &current = tokens[_At];
     if (current._Type == OPEN_BR)
     {
@@ -464,22 +638,22 @@ evaluate:
             // of the node we are operating on, then we append all other nodes found to the tree,
             // mimicing the execution order of these nodes.
             voidnode left = mexpreval(tokens, len, begin + 1, c, out, counterOut);
-            vncurrent._Left = std::make_shared<std::variant<tvoidp, voidnode>>(left);
+            vncurrent._Left = std::make_shared<std::variant<shared_tvoidp, voidnode>>(left);
         }
         else
         {
             voidnode right = mexpreval(tokens, len, begin + 1, c, out, counterOut);
-            vncurrent._Right = std::make_shared<std::variant<tvoidp, voidnode>>(right);
+            vncurrent._Right = std::make_shared<std::variant<shared_tvoidp, voidnode>>(right);
         }
     }
     else
     {
-        if (current._Type != STRING_LITERAL && current._Type != INTEGER_LITERAL && current._Type != FLOAT_LITERAL)
+        if (current._Type != STRING_LITERAL && current._Type != INTEGER_LITERAL && current._Type != FLOAT_LITERAL && current._Type != SELECTOR)
         {
             COMPILE_ERROR_P(out, UNEXPECTED_TOKEN);
             return vncurrent;
         }
-        vncurrent._Left = std::make_shared<std::variant<tvoidp, bst<tvoidp>>>(tvoidp{current._Repr, static_cast<int>(current._Type)});
+        vncurrent._Left = std::make_shared<std::variant<shared_tvoidp, voidnode>>(shared_tvoidp{current._Repr, static_cast<int>(current._Type)});
     }
 
     ltoken &op = tokens[++_At];

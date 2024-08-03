@@ -3,7 +3,7 @@
 
 #define RS_PROGRAM_ROOT "redscript:program_data"
 #define RS_PROGRAM_DATA(W) RS_PROGRAM_ROOT #W
-#define RS_PROGRAM_DEFAULT_DATA(_Entry) "{variables: {}, scope: 0, functions: [], call_stack: [], instruction: 0, entry_point: '" + std::to_string(_Entry) + "'}"
+#define RS_PROGRAM_DEFAULT_DATA(_Entry) "{variables: {}, registers: [], scope: 0, functions: [], call_stack: [], instruction: 0, entry_point: '" + std::to_string(_Entry) + "'}"
 #define RS_PROGRAM_ROOT_STORAGE MCSTORAGE(RS_PROGRAM_ROOT)
 
 #define RS_VARIABLE_JSON(_var, _scope) "{\"name\":\"" + _var.name + "\",\"scope\":" + std::to_string(_scope) + "\",\"value\": 0,\"type\":\"" + std::to_string(_var.type._TypeID) + "\"}"
@@ -45,39 +45,40 @@
 #pragma endregion data_remove
 
 #pragma region data_modify
-#define CMD_DATA_MODIFY(_type, _target, _operation, _where, ...) ("modify " _type SP _target SP #_operation SP _where SP #__VA_ARGS__)
+#define CMD_DATA_MODIFY(_type, _target, _operation, _where, ...) ("modify " _type SP _target SP #_operation SP _where SP __VA_ARGS__)
 
-#define MC_LIST_APPEND_FROM(_type, _target, _source, _fpath) CMD_DATA_MODIFY(_type, _target, append SP from, _source, _fpath)
-#define MC_LIST_APPEND_STRING(_type, _target, _source, _spath, _from, _to) CMD_DATA_MODIFY(_type, _target, append SP string, _source, _spath, _from, _to)
+#define MC_LIST_APPEND_FROM(_type, _target, _source, _fpath) CMD_DATA_MODIFY(_type, _target, append from, _source, _fpath)
+#define MC_LIST_APPEND_STRING(_type, _target, _source, _spath, _from, _to) CMD_DATA_MODIFY(_type, _target, append string, _source, _spath, _from, _to)
 #define MC_LIST_APPEND_VALUE(_type, _target, _value) CMD_DATA_MODIFY(_type, _target, append value, _value)
 
-#define MC_LIST_PREPEND_FROM(_type, _target, _source, _fpath) CMD_DATA_MODIFY(_type, _target, prepend SP from, _source, _fpath)
-#define MC_LIST_PREPEND_STRING(_type, _target, _source, _spath, _from, _to) CMD_DATA_MODIFY(_type, _target, prepend SP string, _source, _spath, _from, _to)
+#define MC_LIST_PREPEND_FROM(_type, _target, _source, _fpath) CMD_DATA_MODIFY(_type, _target, prepend from, _source, _fpath)
+#define MC_LIST_PREPEND_STRING(_type, _target, _source, _spath, _from, _to) CMD_DATA_MODIFY(_type, _target, prepend string, _source, _spath, _from, _to)
 #define MC_LIST_PREPEND_VALUE(_type, _target, _value) CMD_DATA_MODIFY(_type, _target, prepend SP value, _value)
 
-#define MC_LIST_INSERT_FROM(_type, _target, _source, _fpath, _index) CMD_DATA_MODIFY(_type, _target, insert SP #_index SP from, _source, _fpath)
-#define MC_LIST_INSERT_STRING(_type, _target, _source, _spath, _index, _from, _to) CMD_DATA_MODIFY(_type, _target, insert SP #_index SP string, _source, _spath, _from, _to)
-#define MC_LIST_INSERT_VALUE(_type, _target, _source, _fpath, _index) CMD_DATA_MODIFY(_type, _target, insert SP #_index SP value, _source, _fpath)
+#define MC_LIST_INSERT_FROM(_type, _target, _source, _fpath, _index) CMD_DATA_MODIFY(_type, _target, insert #_index from, _source, _fpath)
+#define MC_LIST_INSERT_STRING(_type, _target, _source, _spath, _index, _from, _to) CMD_DATA_MODIFY(_type, _target, insert #_index SP string, _source, _spath, _from, _to)
+#define MC_LIST_INSERT_VALUE(_type, _target, _source, _fpath, _index) CMD_DATA_MODIFY(_type, _target, insert #_index SP value, _source, _fpath)
 
-#define MC_DATA_SET_FROM(_type, _target, _source) CMD_DATA_MODIFY(_type, _target, set SP from, _source)
-#define MC_DATA_SET_STRING(_type, _target, _source, _spath, _from, _to) CMD_DATA_MODIFY(_type, _target, set SP string, _source, _spath, _from, _to)
-#define MC_DATA_SET_VALUE(_type, _target, _source, _value) CMD_DATA_MODIFY(_type, _target, _source, set SP value, _value)
+#define MC_DATA_SET_FROM(_type, _target, _source) CMD_DATA_MODIFY(_type, _target, set from, _source)
+#define MC_DATA_SET_STRING_FT(_type, _target, _source, _spath, _from, _to) CMD_DATA_MODIFY(_type, _target, set string, _source, _spath, _from, _to)
+#define MC_DATA_SET_STRING(_type, _target, _source, _spath) CMD_DATA_MODIFY(_type, _target, set string, _source, _spath)
+#define MC_DATA_SET_VALUE(_type, _target, _source, _value) CMD_DATA_MODIFY(_type, _target, set value, _source, _value)
 #pragma endregion data_modify
 
 #pragma region data_merge
 
 #define MC_DATA_MERGE(_type, _target, _nbt) ("merge " _type SP _target SP _nbt)
 
-#define MC_MERGE_FROM(_type, _target, _source) CMD_DATA_MERGE(_type SP _target, _source)
-#define MC_MERGE_STRING(_type, _target, _source, _from, _to) CMD_DATA_MERGE(_type SP _target, _source) SP #_from SP #_to
-#define MC_MERGE_VALUE(_value) ("merge value " SP _value)
+#define MC_MERGE_FROM(_type, _target, _source) CMD_DATA_MERGE(_type, _target, _source)
+#define MC_MERGE_STRING(_type, _target, _source, _from, _to) CMD_DATA_MERGE(_type, _target, _source) SP #_from SP #_to
+#define MC_MERGE_VALUE(_type, _target, _value) CMD_DATA_MERGE(_type, _target, _value)
 
 #pragma endregion
 
 #pragma region scoreboard
 
 #define CMD_SCOREBOARD_OBJ(_operation, _name, _type, _displayName) "objectives " #_operation SP _name SP #_type SP _displayName
-#define CMD_SCOREBOARD_PLAYER(_operation, _targets, _objective, _score) "players " #_operation SP _targets SP _objective SP #_score
+#define CMD_SCOREBOARD_PLAYER(_operation, _targets, _objective, _score) "players " #_operation SP _targets SP _objective SP _score
 
 #define MC_SCOREBOARD_OBJ_ADD(_name, _type, _displayName) CMD_SCOREBOARD_OBJ(add, _name, _type, _displayName)
 #define MC_SCOREBOARD_OBJ_SETDISPLAY(_display, _objective) "objectives setdisplay " #_display SP _objective

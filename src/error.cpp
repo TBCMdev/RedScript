@@ -22,7 +22,10 @@ void errstr(int ec, char* out, int s)
     }
     out[s - 1] = '\0';
 }
-
+void warn(const char* msg)
+{
+    printf("[WARN] %s", msg);
+}
 void elprint(lex_error error, char* unlexed_c)
 {
     int len = strlen(unlexed_c);

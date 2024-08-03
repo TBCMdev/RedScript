@@ -30,7 +30,7 @@ typedef struct lex_error_t
 
 void elprint(lex_error, char*);
 void errstr(int, char*, int);
-
+void warn(const char*);
 // #define BLK "\e[0;30m"
 // #define RED "\e[0;31m"
 // #define GRN "\e[0;32m"

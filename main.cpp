@@ -1,6 +1,6 @@
 #include "lexer.h"
 #include "file.h"
-#include "mcf.hpp"
+#include "mcfms.hpp"
 
 #include <filesystem>
 
@@ -35,7 +35,7 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    mcf::rscprogram* program;
+    std::shared_ptr<mcf::rscprogram> program;
     lex_error status = mcf::compileRsc(tokens, *tokenCount, program);
     if(status.ec < 0)
     {
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
 
         return status.ec;
     }
-    if(!program)
+    if(!program.get())
     {
         printf("Could not compile program.\n");
         return status.ec;
@@ -51,6 +51,7 @@ int main(int argc, char** argv)
     program->_FileNameWithoutExtention = std::filesystem::path(argv[1]).stem().string();
     program->_WorldName = argv[2];
     status = mcf::buildRsc(*program);
+    
     if(status.ec < 0)
     {
         elprint(status, _FileBuffer);

@@ -5,14 +5,16 @@
 #include <filesystem>
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
+#include <algorithm>
 
 #include "util.h"
 #include "lexer.h"
 #include "token.h"
 #include "bst.hpp"
 #include "nbt.hpp"
-#include "mcfms.hpp"
 #include "mcinbfs.hpp"
+
 #define MCMETA(VER) (std::string("{\"pack\":{\"pack_format\": ") + VER + ",\"description\": \"A programming language used for abstracting minecraft's functionalities.\"}}")
 
 #define DATAPACK_FOLDER(W) ([](const std::string &world) { \
@@ -43,6 +45,7 @@
 #define VARIABLE_TYPE_ID 3
 #define UNKNOWN_TYPE_ID 4
 #define UNEVALUATED_NODE_TREE_ID 5
+
 typedef struct tvoidp_t
 {
     char *v;
@@ -72,18 +75,24 @@ namespace mcf
         OCCUPIED,
         LOCKED
     } register_state;
+    typedef enum class register_type_t
+    {
+        INTEGER_ONLY,
+        ALL
+    } register_type;
     typedef struct mcf_register_t
     {
         int id;
         std::string display;
+        register_type type = register_type::ALL;
         register_state state = register_state::FREE;
     } mcf_register;
     namespace registers
     {
 #define ALL_REGISTER_NAMES "pc", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "rt", "a1", "a2", "a3", "a4", "a5", "a6"
         // general purpose registers
-        static inline mcf_register r1{1, "r1"};
-        static inline mcf_register r2{2, "r2"};
+        static inline mcf_register r1{1,"r1"};
+        static inline mcf_register r2{2,"r2"};
         static inline mcf_register r3{3, "r3"};
         static inline mcf_register r4{4, "r4"};
         static inline mcf_register r5{5, "r5"};
@@ -115,16 +124,18 @@ namespace mcf
             return nullptr;
         }
         // program counter (if needed)
-        static inline mcf_register pc{0, "pc"};
+        static inline mcf_register pc{0, "pc", register_type::INTEGER_ONLY};
 
         // return value holder
         static inline mcf_register ret{10, "rt"};
         // arithmatic registers (add more if needed)
-        static inline mcf_register a1{11, "a1"};
-        static inline mcf_register a2{12, "a2"};
-        static inline mcf_register a3{13, "a3"};
-        static inline mcf_register a4{14, "a4"};
-        static inline mcf_register a5{15, "a5"};
+        static inline mcf_register a1{11, "a1", register_type::INTEGER_ONLY};
+        static inline mcf_register a2{12, "a2", register_type::INTEGER_ONLY};
+        static inline mcf_register a3{13, "a3", register_type::INTEGER_ONLY};
+        static inline mcf_register a4{14, "a4", register_type::INTEGER_ONLY};
+        static inline mcf_register a5{15, "a5", register_type::INTEGER_ONLY};
+        static inline mcf_register null{-1, ""};
+
         inline mcf_register *findFreeARR()
         {
             if (a1.state == register_state::FREE)
@@ -152,8 +163,8 @@ namespace mcf
                 r2 = mcf::registers::findFreeGPR();
             if (!r2)
                 r2 = &null;
+            return std::pair(r1, r2);
         }
-        static inline mcf_register null{-1, ""};
     }
 
     typedef enum class rs_instructions_t
@@ -163,7 +174,7 @@ namespace mcf
         DELETE,
         EXIT,
         ASSIGN,
-        PARAM
+        RET,
     } rs_instructions;
     typedef enum class rs_instructions_pcount_t
     {
@@ -204,6 +215,8 @@ namespace mcf
         std::vector<byte_code_instruction> _Instructions;
         std::vector<rs_variable> _Variables;
         int _Segments = 1;
+        std::vector<rs_variable> _Parameters;
+        bool _Inbuilt = false;
     } function_byte_code;
 
     typedef struct command_t
@@ -215,6 +228,7 @@ namespace mcf
     {
         std::string path, name;
         std::vector<command> _Instructions;
+        std::vector<int> _SegmentBreaks = {};
     } mcfunction;
     typedef struct rscprogram_t
     {
@@ -230,13 +244,12 @@ namespace mcf
     void writemcp(rscprogram &);
     bool createVoidWorld(std::filesystem::path &);
     int findTrailingChar(char, ltoken *, int, int);
-    lex_error compileRsc(ltoken *, int, rscprogram *);
+    lex_error compileRsc(ltoken *, int, std::shared_ptr<rscprogram>&);
     lex_error buildRsc(rscprogram &);
 
-    mcf::mcf_register evalVoidNode(voidnode &);
     voidnode mexpreval(ltoken *, int, int, int, lex_error *, int *);
     std::vector<voidnode> m_evalparams(ltoken *, int, int &, lex_error *);
 
     std::vector<rs_variable> parseFunctionParameters(ltoken *, int &, std::vector<std::string> &, lex_error *);
-
+    mcfunction fbc_to_mcfunc(function_byte_code&, std::unordered_map<std::string,function_byte_code>&, lex_error*);
 }

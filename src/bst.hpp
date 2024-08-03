@@ -21,7 +21,7 @@ enum class bst_operator
 
     NONE
 };
-inline std::string bst_operator_str(bst_operator&& op)
+inline std::string bst_operator_str(bst_operator op)
 {
     switch(op)
     {
