@@ -14,6 +14,5 @@
 
 int istypedef(char*);
 token_type iskwd(char*, int*);
-int isinb(char*, int*);
 
 #endif //LANG_H

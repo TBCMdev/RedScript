@@ -20,7 +20,6 @@ int isf(char *path)
     }
     return S_ISREG(st.st_mode);
 }
-
 int sfread(char *path, char **_buff)
 {
     int buffSize = 128;
@@ -44,7 +43,6 @@ int sfread(char *path, char **_buff)
             char *_nBuff = (char*)realloc(buff, buffSize * sizeof(char));
             if (_nBuff == NULL)
             {
-                free(_nBuff);
                 fclose(_Hwnd);
                 return -1;
             }
@@ -57,7 +55,6 @@ int sfread(char *path, char **_buff)
         char *_nBuff = (char*)realloc(buff, bytes_read * sizeof(char));
         if (_nBuff == NULL)
         {
-            free(_nBuff);
             fclose(_Hwnd);
             return -1;
         }

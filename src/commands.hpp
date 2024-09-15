@@ -3,11 +3,11 @@
 
 #define RS_PROGRAM_ROOT "redscript:program_data"
 #define RS_PROGRAM_DATA(W) RS_PROGRAM_ROOT #W
-#define RS_PROGRAM_DEFAULT_DATA(_Entry) "{variables: {}, registers: [], scope: 0, functions: [], call_stack: [], instruction: 0, entry_point: '" + std::to_string(_Entry) + "'}"
+#define RS_PROGRAM_DEFAULT_DATA(_Entry) "{\"variables\": {}, \"registers\": {}, \"scope\": 0, \"functions\": [], \"call_stack\": [], \"instruction\": 0, \"_cmpr\": [0,0,0,0,0,0,0,0,0,0], entry_point: '" + std::to_string(_Entry) + "'}"
 #define RS_PROGRAM_ROOT_STORAGE MCSTORAGE(RS_PROGRAM_ROOT)
 
-#define RS_VARIABLE_JSON(_var, _scope) "{\"name\":\"" + _var.name + "\",\"scope\":" + std::to_string(_scope) + "\",\"value\": 0,\"type\":\"" + std::to_string(_var.type._TypeID) + "\"}"
-#define RS_VARIABLE_JSON_VALUE(_var, _value, _scope) "{\"name\":\"" _var.name "\",\"scope\":" + std::to_string(_scope) + "\",\"value\": " + std::to_string(_value) + ",\"type\":\"" + std::to_string(_var.type._TypeID) + "\"}"
+#define RS_VARIABLE_JSON(_var, _scope) "{\"scope\":" + std::to_string(_scope) + "\",\"data\": 0,\"type\":" + std::to_string(_var.type._TypeID) + "}"
+#define RS_VARIABLE_JSON_VALUE(_var, _value, _scope) "{\"scope\":" + std::to_string(_scope) + "\",\"data\": " + std::to_string(_value) + ",\"type\":" + std::to_string(_var.type._TypeID) + "}"
 
 #pragma region data
 
@@ -62,7 +62,7 @@
 #define MC_DATA_SET_FROM(_type, _target, _source) CMD_DATA_MODIFY(_type, _target, set from, _source)
 #define MC_DATA_SET_STRING_FT(_type, _target, _source, _spath, _from, _to) CMD_DATA_MODIFY(_type, _target, set string, _source, _spath, _from, _to)
 #define MC_DATA_SET_STRING(_type, _target, _source, _spath) CMD_DATA_MODIFY(_type, _target, set string, _source, _spath)
-#define MC_DATA_SET_VALUE(_type, _target, _source, _value) CMD_DATA_MODIFY(_type, _target, set value, _source, _value)
+#define MC_DATA_SET_VALUE(_type, _target, _value) CMD_DATA_MODIFY(_type, _target, set value, _value)
 #pragma endregion data_modify
 
 #pragma region data_merge

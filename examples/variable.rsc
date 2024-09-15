@@ -4,7 +4,8 @@ int tellraw(selector__: string, message__: string);
 
 int run(args: string[])
 {
-    str: string = "Hello!";
-
-    tellraw(@p, str);
+    if("Hello" == "Hello World!")
+    {
+        tellraw(@p, "Comparison is a success");
+    }
 }

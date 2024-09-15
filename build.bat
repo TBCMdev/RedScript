@@ -1,1 +1,1 @@
-g++ main.cpp ./src/*.cpp ./dependencies/nbt/*.cpp -I src -I dependencies/nbt -o rscript.exe -static -g
+g++ main.cpp ./src/*.cpp ./dependencies/nbt/*.cpp -I src -I dependencies/nbt -o rscript.exe -static -g -std=c++20

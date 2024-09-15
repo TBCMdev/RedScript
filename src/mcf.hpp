@@ -14,6 +14,15 @@
 #include "bst.hpp"
 #include "nbt.hpp"
 #include "mcinbfs.hpp"
+#include "commands.hpp"
+#include "file.h"
+
+
+#ifdef RS_FOR_RELEASE
+#define REDSCRIPT_PATH "C:/Program Files/Redscript/"
+#else 
+#define REDSCRIPT_PATH "C:\\Users\\krist\\Desktop\\code\\RedScript\\inb\\lib"
+#endif
 
 #define MCMETA(VER) (std::string("{\"pack\":{\"pack_format\": ") + VER + ",\"description\": \"A programming language used for abstracting minecraft's functionalities.\"}}")
 
@@ -26,11 +35,24 @@
     return std::string(appdata) + "/.minecraft/saves/" + world + "/datapacks/"; }(W))
 
 #define version "48"
-
+#define T_COMPILE_ERROR(_ec, _tokens)                  \
+    {                                       \
+        __STACK_TRACE = (_tokens)[_At]._Trace; \
+        __STACK_TRACE.ec = _ec;             \
+        return __STACK_TRACE;               \
+    }
 #define COMPILE_ERROR(_ec)                  \
     {                                       \
         __STACK_TRACE = tokens[_At]._Trace; \
         __STACK_TRACE.ec = _ec;             \
+        return __STACK_TRACE;               \
+    }
+
+#define COMPILE_ERROR_RAW                   \
+    {                                       \
+        int bec = __STACK_TRACE.ec;         \
+        __STACK_TRACE = tokens[_At]._Trace; \
+        __STACK_TRACE.ec = bec;             \
         return __STACK_TRACE;               \
     }
 #define COMPILE_ERROR_P(st, _ec)  \
@@ -45,6 +67,7 @@
 #define VARIABLE_TYPE_ID 3
 #define UNKNOWN_TYPE_ID 4
 #define UNEVALUATED_NODE_TREE_ID 5
+#define CMP_OPERATOR_ID 6
 
 typedef struct tvoidp_t
 {
@@ -86,42 +109,30 @@ namespace mcf
         std::string display;
         register_type type = register_type::ALL;
         register_state state = register_state::FREE;
+        std::string path()
+        {
+            return RS_PROGRAM_ROOT " registers." + display;
+        }
     } mcf_register;
     namespace registers
     {
 #define ALL_REGISTER_NAMES "pc", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "rt", "a1", "a2", "a3", "a4", "a5", "a6"
         // general purpose registers
-        static inline mcf_register r1{1,"r1"};
-        static inline mcf_register r2{2,"r2"};
-        static inline mcf_register r3{3, "r3"};
-        static inline mcf_register r4{4, "r4"};
-        static inline mcf_register r5{5, "r5"};
-        static inline mcf_register r6{6, "r6"};
-        static inline mcf_register r7{7, "r7"};
-        static inline mcf_register r8{8, "r8"};
-        static inline mcf_register r9{9, "r9"};
+
+        static inline std::vector<mcf_register> _GPProgramRegisters{
+            mcf_register{1, "r1"}, mcf_register{2, "r2"}, mcf_register{3, "r3"}, mcf_register{4, "r4"}, mcf_register{5, "r5"}, mcf_register{6, "r6"}, mcf_register{7, "r7"}};
 
         inline mcf_register *findFreeGPR()
         {
-            if (r1.state == register_state::FREE)
-                return &r1;
-            if (r2.state == register_state::FREE)
-                return &r2;
-            if (r3.state == register_state::FREE)
-                return &r3;
-            if (r4.state == register_state::FREE)
-                return &r4;
-            if (r5.state == register_state::FREE)
-                return &r5;
-            if (r6.state == register_state::FREE)
-                return &r6;
-            if (r7.state == register_state::FREE)
-                return &r7;
-            if (r8.state == register_state::FREE)
-                return &r8;
-            if (r9.state == register_state::FREE)
-                return &r9;
-            return nullptr;
+            for (mcf_register &_reg : _GPProgramRegisters)
+                if (_reg.state == register_state::FREE)
+                {
+                    _reg.state = register_state::OCCUPIED;
+                    return &_reg;
+                }
+
+            warn("GPR register limit reached. This will be fixed upon release; until now, please lower the amount of nodes in BST.");
+            exit(1);
         }
         // program counter (if needed)
         static inline mcf_register pc{0, "pc", register_type::INTEGER_ONLY};
@@ -129,26 +140,29 @@ namespace mcf
         // return value holder
         static inline mcf_register ret{10, "rt"};
         // arithmatic registers (add more if needed)
-        static inline mcf_register a1{11, "a1", register_type::INTEGER_ONLY};
-        static inline mcf_register a2{12, "a2", register_type::INTEGER_ONLY};
-        static inline mcf_register a3{13, "a3", register_type::INTEGER_ONLY};
-        static inline mcf_register a4{14, "a4", register_type::INTEGER_ONLY};
-        static inline mcf_register a5{15, "a5", register_type::INTEGER_ONLY};
-        static inline mcf_register null{-1, ""};
 
+        static inline std::vector<mcf_register> _ARProgramRegisters
+        {
+
+            mcf_register{11, "a1", register_type::INTEGER_ONLY},
+            mcf_register{12, "a2", register_type::INTEGER_ONLY},
+            mcf_register{13, "a3", register_type::INTEGER_ONLY},
+            mcf_register{14, "a4", register_type::INTEGER_ONLY},
+            mcf_register{15, "a5", register_type::INTEGER_ONLY},
+        };
         inline mcf_register *findFreeARR()
         {
-            if (a1.state == register_state::FREE)
-                return &a1;
-            if (a2.state == register_state::FREE)
-                return &a2;
-            if (a3.state == register_state::FREE)
-                return &a3;
-            if (a4.state == register_state::FREE)
-                return &a4;
-            if (a5.state == register_state::FREE)
-                return &a5;
-            return nullptr;
+            for(mcf_register& _reg : _ARProgramRegisters)
+            {
+                if(_reg.state == register_state::FREE)
+                {
+                    _reg.state = register_state::OCCUPIED;
+                    return &_reg;
+                }
+            }
+
+            warn("ARR register limit reached. This will be fixed upon release; until now, please lower the amount of nodes in BST.");
+            exit(1);
         }
         inline std::pair<mcf_register *, mcf_register *> findTwoOperableRegisters()
         {
@@ -156,15 +170,12 @@ namespace mcf
             auto *r2 = mcf::registers::findFreeARR();
             if (!r1)
                 r1 = mcf::registers::findFreeGPR();
-            if (!r1)
-                r1 = &null;
 
             if (!r2)
                 r2 = mcf::registers::findFreeGPR();
-            if (!r2)
-                r2 = &null;
+
             return std::pair(r1, r2);
-        }
+        }   
     }
 
     typedef enum class rs_instructions_t
@@ -175,6 +186,8 @@ namespace mcf
         EXIT,
         ASSIGN,
         RET,
+        CMP,
+        CMP_END
     } rs_instructions;
     typedef enum class rs_instructions_pcount_t
     {
@@ -183,7 +196,8 @@ namespace mcf
         DELETE = 1,
         EXIT = 0,
         ASSIGN = 2,
-        PARAM = 2
+        PARAM = 2,
+        CMP = 3
     } rs_instructions_pcount;
 
     typedef struct typedef_info_t
@@ -208,7 +222,18 @@ namespace mcf
         std::string name;
         typedef_info type;
 
+        inline bool operator==(const rs_variable_t &rhs) const
+        {
+            return (name == rhs.name);
+        }
     } rs_variable;
+
+    typedef struct rs_namespace_t
+    {
+        std::vector<std::string> descriptors;
+        
+    } rs_namespace;
+
     typedef struct function_byte_code_t
     {
         std::string _Name;
@@ -244,12 +269,11 @@ namespace mcf
     void writemcp(rscprogram &);
     bool createVoidWorld(std::filesystem::path &);
     int findTrailingChar(char, ltoken *, int, int);
-    lex_error compileRsc(ltoken *, int, std::shared_ptr<rscprogram>&);
+    lex_error compileRsc(ltoken *, int, std::shared_ptr<rscprogram> &);
     lex_error buildRsc(rscprogram &);
-
     voidnode mexpreval(ltoken *, int, int, int, lex_error *, int *);
     std::vector<voidnode> m_evalparams(ltoken *, int, int &, lex_error *);
 
     std::vector<rs_variable> parseFunctionParameters(ltoken *, int &, std::vector<std::string> &, lex_error *);
-    mcfunction fbc_to_mcfunc(function_byte_code&, std::unordered_map<std::string,function_byte_code>&, lex_error*);
+    mcfunction fbc_to_mcfunc(function_byte_code &, std::unordered_map<std::string, function_byte_code> &, lex_error *);
 }

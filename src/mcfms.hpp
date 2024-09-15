@@ -9,12 +9,14 @@
 
 #define RS_KEYWORDS 1
 
+
+
 #include "commands.hpp"
 #include "mcf.hpp"
 #define CMD_LIST std::vector<mcf::command>
 
-std::pair<CMD_LIST, mcf::mcf_register*> evalVoidnode(voidnode&);
-
+std::pair<CMD_LIST, mcf::mcf_register*> evalVoidnode(voidnode&, mcf::mcf_register* = nullptr);
+int getVoidnodeType(voidnode&);
 
 // exitProgram;
 // createLocalVariable;
@@ -26,7 +28,7 @@ CMD_LIST createLocalVariable(mcf::rs_variable&, int);
 CMD_LIST assignVariableValue(std::string, voidnode &);
 CMD_LIST assignVariableValue(std::string, shared_tvoidp&);
 
-std::pair<CMD_LIST, mcf::mcf_register*> getRegister(mcf::mcf_register&);
+std::pair<CMD_LIST, mcf::mcf_register*> copyRegister(mcf::mcf_register&, mcf::mcf_register*);
 CMD_LIST setRegister(mcf::mcf_register&, shared_tvoidp);
 
 std::pair<CMD_LIST, mcf::mcf_register*> _ARRoperate(mcf::mcf_register&, shared_tvoidp&, std::string);
@@ -41,12 +43,6 @@ CMD_LIST prepareFunctionCall(mcf::function_byte_code&, std::vector<shared_tvoidp
 #define ARR_MUL(tvp1, tvp2) _ARRoperate(tvp1, tvp2, "*=")
 #define ARR_DIV(tvp1, tvp2) _ARRoperate(tvp1, tvp2, "/=")
 #define ARR_MOD(tvp1, tvp2) _ARRoperate(tvp1, tvp2, "%=")
-// createGlobalVariable;
-// callFunction;
-// deleteVariable; 
-// runRawCommand;
-// add;sub;mul;div;mod;
-// adds;subs;muls;divs;mods;
 
 
 

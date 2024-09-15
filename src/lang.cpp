@@ -16,15 +16,6 @@ token_type iskwd(char* c, int* info)
     int t = istypedef(c);
     if(t > 0) return TYPE_DEF;
 
-    if(seq(c, "method")) return FUNC_DEF;
-
+    if(seq(c, "use")) return FILE_INCLUDE;
     return UNKNOWN;
-}
-int isinb(char* c, int* info)
-{
-    if(seq(c, INB_MSG))
-        *info = INB_MSG_ID;
-    else return 0;
-
-    return 1;
 }

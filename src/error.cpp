@@ -53,5 +53,5 @@ void elprint(lex_error error, char* unlexed_c)
     errstr(error.ec, errcn, 32);
     printf("\n%s Error(rsc-%d) (at: %d, from: %d -> to: %d):\n", errcn, abs(error.ec), at, lineStart, lineEnd);
     printf("\t%s\n", line); 
-    printf("\t%*s^ HERE\n\n", error.cpos, "");
+    printf("\t%*s^ HERE\n\n", error.cpos - 1, "");
 }

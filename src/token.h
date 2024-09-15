@@ -5,17 +5,18 @@
 
 typedef enum token_type_t
 {
-    WORD,
-    STRING_LITERAL,
-    INTEGER_LITERAL,
-    FLOAT_LITERAL,
+    INTEGER_LITERAL = 0,
+    FLOAT_LITERAL = 1,
+    STRING_LITERAL = 2,
     TYPE_DEF,
-
+    WORD,
+    
     VARIABLE_DEF,
 
     FUNC_DEF,
     INB_FUNC_DEF,
     OPERATOR,
+    COMPARISON_OPERATOR,
     CHARACTER,
     OPEN_BR,
     OPEN_SQBR,
@@ -24,7 +25,7 @@ typedef enum token_type_t
     CLOSED_CBR,
     CLOSED_SQBR,
     NEGATOR,
-
+    FILE_INCLUDE,
     NEWLINE,
     SEMI_COLON,
     COMMA,
