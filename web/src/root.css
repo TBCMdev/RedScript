@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
+
+:root
+{
+    --nav-color: #C60117;
+    --bg-color: #241F1E;
+}
+
+*{
+    font-family: "Ubuntu", sans-serif;
+    color: whitesmoke;
+}
+
+body
+{
+    background-color: var(--bg-color);
+    margin: 0;
+    width: auto;
+    overflow-x: hidden;
+}
+.h-sep
+{
+    justify-self: center;
+    align-self: center;
+    width: auto;
+    margin: 2rem;
+    border-bottom: 2px solid whitesmoke;
+}
+.main-container
+{
+    grid-template-columns: 2rem auto;
+}
+.main-container #nav
+{
+    background-color: var(--nav-color);
+    margin: 0;
+    display:flex;
+    align-items: start;
+}
+.main-container #nav ul 
+{
+    display: inline-flex;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+.main-container #nav ul #circle
+{
+    width: 35px;
+    height: 35px;
+    background-color: white;
+    border-radius: 50%;
+    margin: 0.5rem;
+}
+.main-container #nav ul li
+{
+    padding: 0.5rem;
+    transition: all .25s ease;
+    display:flex;
+    align-items: center;
+}
+
+.main-container #nav ul li:hover
+{
+    background-color: #9B0002;
+    cursor:pointer;
+}
+.main-container #nav ul a
+{
+    margin: 0.5rem;
+    text-decoration: none;
+    font-weight: bolder;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+footer
+{
+    background-color: #9B0002;
+    padding: 2rem 1rem;
+    display:grid;
+    margin-top: 8rem;
+    grid-template-columns: 75% 25%;
+}

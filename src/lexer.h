@@ -11,6 +11,7 @@
 #ifdef __cplusplus
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include "mcf.hpp"
 #endif
 

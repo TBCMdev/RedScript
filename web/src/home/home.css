@@ -1,0 +1,103 @@
+@keyframes rotate
+{
+    100%
+    {
+        transform:rotate(360deg);
+    }
+}
+.home-header
+{
+    /* background-image: url(../../assets/images/cmd_block.png); */
+    
+    display:grid;
+    grid-template-columns: 60% 40%;
+}
+.home-header #left
+{
+    padding:1rem;
+    text-indent: 5rem;
+}
+.home-header #left p
+{
+    font-size: large;
+    margin-left: 1rem;
+    margin-bottom: 2.5rem;
+}
+.home-header #left h1
+{
+    font-size: 75px;
+    margin-bottom: 1rem;
+}
+.home-header #right
+{
+    display:flex;
+}
+.home-header #download
+{
+    text-align: center;
+    padding:1rem 6rem 1rem 6rem;
+    background-color: #9B0002;
+    border:none;
+    border-radius: 20px;
+    text-transform: uppercase;
+    font-size: large;
+    margin:2rem 7rem;
+    cursor:pointer;
+    font-weight: bold;
+
+}
+.home-header #download:hover
+{
+    background-color: #c5171a;
+}
+.home-header #right
+{
+    
+    font-size: 30px;
+    background-image: url(../../assets/images/cmd_block.png);
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position-x: center;
+    background-position-y: center;
+    overflow: visible;
+    mix-blend-mode: exclusion;  
+    padding-top: 20rem;
+    padding-bottom: 10rem;
+    animation: rotate 60s infinite;
+    filter:sepia(1);
+}
+
+.summary
+{
+    display:grid;
+    grid-gap: 1rem;
+    grid-template-columns: 33% 33% 33%;
+    padding: 0 4rem;
+    min-height: 20rem;
+}
+.summary div #title
+{
+    text-align: center;
+    background-color: #9B0002;
+    margin: 0 0;
+    padding: 1rem;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+.summary a
+{
+    color: crimson;    
+}
+.summary p
+{
+    font-size: large;
+    color: black;
+    padding: 0 1rem;
+    text-align: center;
+}
+.summary > div
+{
+    height: 40rem;
+    background-color: whitesmoke;
+    border-radius: 10px;
+}

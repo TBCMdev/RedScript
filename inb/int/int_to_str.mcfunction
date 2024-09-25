@@ -1,0 +1,1 @@
+$data modify storage redscript:program_data $(p1).data set string storage redscript:program_data $(p2).data

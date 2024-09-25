@@ -17,7 +17,11 @@ run function with storage ... <with> # do we chain the withs here? idk
 One problem, if we pass a variable's value, and we change it in the function, i dont think the macro will update.
 We must hard code a solution that follows variable updates.
 
+Maybe we can only use function macros for calling inbuild minecraft commands, as everywhere else we can operate with variables for the most part.
 
 ## RETURN
 
 The return command is how we can terminate function execution, something ive been scratching my head on for a while, adde 1.20.
+
+
+

@@ -17,7 +17,9 @@ lex_error _preprocess(ltoken** tokens, int tCount, std::string dirPath, std::str
     lex_error __STACK_TRACE = {0, 0, 0, 0, 0};
     int _At = -1;
     //TODO
+    // TODO: make all token dereferencing most performant
     std::vector<std::string> _IncludedFiles, _InbuiltFiles = retrieveInbuiltFiles();
+    std::unordered_map<std::string, std::string> _Macros;
     while(++_At < tCount)
     {
         ltoken& t = (*tokens)[_At];
@@ -100,7 +102,31 @@ lex_error _preprocess(ltoken** tokens, int tCount, std::string dirPath, std::str
                     
                     contentOut.insert(0, _FileBuffer);
                 }
+                else if (seq(name._Repr, "macro"))
+                {
+                    std::string name = (*tokens)[++_At]._Repr;
+                    std::string value = (*tokens)[++_At]._Repr;
 
+                    _Macros.insert({name, value});
+
+                    int _Caret = _At;
+
+                    ltoken* d_toks = *tokens;
+
+                    while(_Caret < tCount)
+                    {
+                        ltoken& at = d_toks[++_Caret];
+
+                        if (name == at._Repr)
+                        {
+                            at._Repr = name.data();
+
+
+                            _lex(&d_toks[_Caret], at._Repr, name.length(), nullptr);
+                        }
+                    }
+
+                }
                 break;
             }
             default:
@@ -180,8 +206,10 @@ lex_error _lex(ltoken** _gout, char *content, int clen, int *lenOut)
         }
         else if (isalpha(c) || c == '_')
         {
+            bool isSelector = false;
             int l = i;
             char n;
+            int _S = 0;
 
             while (i + 1 < clen && isalpha((n = content[i + 1])) || n == '_')
                 i++;
@@ -189,7 +217,22 @@ lex_error _lex(ltoken** _gout, char *content, int clen, int *lenOut)
             int size = i + 1 - l;
             char *_Word = (char *)malloc((size + 1) * sizeof(char));
             LEX_IFFAIL(_Word);
-            strncpy(_Word, &content[l], size);
+_stradd:
+            strncpy(_Word + (_S * sizeof(char)), &content[l], size);
+
+            if (content[i + 1] == ':' && content[i + 2] == ':')
+            {
+                i+=2;
+                _S += size;
+                while (i + 1 < clen && isalpha((n = content[i + 1])) || n == '_')
+                    i++;
+                size = i + 1 - l;
+                _Word = (char*)realloc(_Word, (size + 1) * sizeof(char));
+                LEX_IFFAIL(_Word);
+                isSelector = true;
+                goto _stradd;
+                
+            }
             _Word[size] = '\0';
 
             ltoken t = {_Word, WORD, 0, __STACK_TRACE};
@@ -197,12 +240,20 @@ lex_error _lex(ltoken** _gout, char *content, int clen, int *lenOut)
             int _ExtraInfo = -1;
             token_type _t = UNKNOWN;
 
-            if ((_ExtraInfo = istypedef(_Word)) != -1)
-                t._Type = TYPE_DEF;
-            else if ((_t = iskwd(_Word, &_ExtraInfo)) != UNKNOWN)
-                t._Type = _t;
+            if(isSelector)
+            {
+                // this::thing::
+            }else
+            {
+                if ((_ExtraInfo = istypedef(_Word)) != -1)
+                    t._Type = TYPE_DEF;
+                else if ((_t = iskwd(_Word, &_ExtraInfo)) != UNKNOWN)
+                    t._Type = _t;
+            }
+            
 
             t._Info = _ExtraInfo;
+
             (*_gout)[_TokenCount++] = t;
         }
         else if (c == '"' || c == '\'')

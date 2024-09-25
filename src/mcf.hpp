@@ -20,8 +20,12 @@
 
 #ifdef RS_FOR_RELEASE
 #define REDSCRIPT_PATH "C:/Program Files/Redscript/"
-#else 
+#else
+#ifdef RS_HOME
 #define REDSCRIPT_PATH "C:\\Users\\krist\\Desktop\\code\\RedScript\\inb\\lib"
+#else
+#define REDSCRIPT_PATH ".\\inb\\lib\\"
+#endif
 #endif
 
 #define MCMETA(VER) (std::string("{\"pack\":{\"pack_format\": ") + VER + ",\"description\": \"A programming language used for abstracting minecraft's functionalities.\"}}")

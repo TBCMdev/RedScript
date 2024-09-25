@@ -463,7 +463,7 @@ lex_error mcf::compileRsc(ltoken *tokens, int tokenCount, std::shared_ptr<mcf::r
     int _IfStatementNestCount = 0;
 
     // the index of each of the elements here corrosponds to their type ID.
-    std::vector<std::string> _Types = {"void", "int", "string", "float", "object"};
+    std::vector<std::string> _Types = {"void", "int", "string", "float", "object", "selector", "nselector"};
     std::unordered_map<std::string, function_byte_code> _Functions;
     // variables, and their values as voidnode bsts, so that we can parse them later.
     std::unordered_map<std::string, std::pair<mcf::rs_variable, std::shared_ptr<voidnode>>> _GlobalVariables;
@@ -634,6 +634,7 @@ _beginTokenParse:
             {
             case COLON:
             {
+                
                 t->_Type = VARIABLE_DEF;
 
                 std::string type = tokens[++_At]._Repr;
@@ -800,6 +801,8 @@ std::vector<voidnode> mcf::m_evalparams(ltoken *tokens, int len, int &_At, lex_e
     std::vector<voidnode> vns;
     do
     {
+        if(tokens[_At]._Type == COMMA)
+            _At++;
         int end = _At;
         while (end + 1 < len && (tokens[end + 1]._Type != COMMA && tokens[end + 1]._Type != CLOSED_BR))
             end++;
@@ -813,10 +816,8 @@ std::vector<voidnode> mcf::m_evalparams(ltoken *tokens, int len, int &_At, lex_e
     } while (tokens[++_At]._Type == COMMA);
 
     // error here
-    if (tokens[--_At]._Type != CLOSED_BR)
-    {
+    if (tokens[_At]._Type != CLOSED_BR)
         COMPILE_ERROR_P(out, UNEXPECTED_TOKEN);
-    }
 
     return vns;
 }
@@ -829,8 +830,9 @@ voidnode mcf::mexpreval(ltoken *tokens, int len, int begin, int end, lex_error *
     voidnode vncurrent;
 
     // TODO add function support !!!!
+    // note: function support in the parsing of bsts would be too impactful on performace to allow in redscript.
 evaluate:
-    if (_At >= end)
+    if (_At > end)
         return vncurrent;
 
     ltoken &current = tokens[_At];
@@ -860,6 +862,19 @@ evaluate:
     {
         if (current._Type != STRING_LITERAL && current._Type != INTEGER_LITERAL && current._Type != FLOAT_LITERAL && current._Type != SELECTOR)
         {
+            /**
+             * if(tokens[_At + 1]._Type == COLON)
+                {
+                    // nselector, not variable def
+                    std::vector<std::string> selectors{t->_Repr};
+
+                    while (tokens[_At]._Type == COLON && tokens[++_At]._Type == COLON)
+                        selectors.push_back(tokens[_At++]._Repr);
+
+
+                }
+             * 
+             */
             COMPILE_ERROR_P(out, UNEXPECTED_TOKEN);
             return vncurrent;
         }
