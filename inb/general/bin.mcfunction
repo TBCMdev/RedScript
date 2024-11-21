@@ -4,3 +4,8 @@
 # modification or tampering with any file in these directories is permitted, yet will almost certainly
 # lead to undefined behaviour in game.
 # ------------------------------------------------- 
+
+
+#!params N: int, (scoreboard) REG: string
+#!out (scoreboard) REG: string
+

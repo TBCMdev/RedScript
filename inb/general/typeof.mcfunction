@@ -4,3 +4,9 @@
 # modification or tampering with any file in these directories is permitted, yet will almost certainly
 # lead to undefined behaviour in game.
 # ------------------------------------------------- 
+
+#!params X: rs_variable: json
+#!out sreg
+
+$execute if 
+

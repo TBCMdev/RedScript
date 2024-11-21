@@ -10,4 +10,5 @@ lang.rsc: the file that must be included for all redscript programs.
 
 int msg(selector__: string, message__: string) __inbuilt;
 int kill(selector__: string, message__: string) __inbuilt;
-// int give(selector__: string, item__: nselector, quantity__: int = 1, nbt__: json = null) __inbuilt;
+
+int istr(n__: int) __inbuilt;

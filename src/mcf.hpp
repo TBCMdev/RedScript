@@ -59,6 +59,12 @@
         __STACK_TRACE.ec = bec;             \
         return __STACK_TRACE;               \
     }
+#define COMPILE_ERROR_RAW_P(x)               \
+    {                                       \
+        int bec = x->ec;         \
+        *x = tokens[_At]._Trace; \
+        x->ec = bec;             \
+    }
 #define COMPILE_ERROR_P(st, _ec)  \
     {                             \
         *st = tokens[_At]._Trace; \
@@ -267,6 +273,13 @@ namespace mcf
         int _ChosenEntryIndex;
     } rscprogram;
 
+    /*parser context*/
+    typedef struct rsp_context_t
+    {
+        std::unordered_map<std::string, mcf::function_byte_code>& _Functions;
+        std::shared_ptr<mcf::function_byte_code>& currentFunction;
+    } rsp_context;
+
     std::filesystem::path createDatapack(const std::string &, const std::string &);
     void fAddCommand(mcfunction &, command &);
     void pAddFunction(rscprogram &, mcfunction &);
@@ -275,8 +288,8 @@ namespace mcf
     int findTrailingChar(char, ltoken *, int, int);
     lex_error compileRsc(ltoken *, int, std::shared_ptr<rscprogram> &);
     lex_error buildRsc(rscprogram &);
-    voidnode mexpreval(ltoken *, int, int, int, lex_error *, int *);
-    std::vector<voidnode> m_evalparams(ltoken *, int, int &, lex_error *);
+    voidnode mexpreval(ltoken *, int, int, int, lex_error *, int *, rsp_context&);
+    std::vector<voidnode> m_evalparams(ltoken *, int, int &, lex_error *, rsp_context&);
 
     std::vector<rs_variable> parseFunctionParameters(ltoken *, int &, std::vector<std::string> &, lex_error *);
     mcfunction fbc_to_mcfunc(function_byte_code &, std::unordered_map<std::string, function_byte_code> &, lex_error *);

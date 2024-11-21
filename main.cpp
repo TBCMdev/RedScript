@@ -18,7 +18,7 @@ int main(int argc, char** argv)
 
     sfread(argv[1], &_FileBuffer);
 
-    if(!*_FileBuffer)
+    if(!_FileBuffer)
         return -1;
 
     std::string sFileBuffer = _FileBuffer;
@@ -81,8 +81,8 @@ int main(int argc, char** argv)
         ltoken* t = &tokens[i];
         if(t->_Repr != nullptr)
         {
-            tprint(t);
-            printf("\n");
+            // tprint(t);
+            // printf("\n");
         }
     }
 

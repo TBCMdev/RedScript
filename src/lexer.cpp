@@ -58,7 +58,7 @@ lex_error _preprocess(ltoken** tokens, int tCount, std::string dirPath, std::str
                     int _FileBufferLen = strlen(_FileBuffer);
                     ltoken* _newtokens = (ltoken*) malloc(sizeof(ltoken) * INITIAL_GEN_CAPACITY);
                     int* ftokenCount = (int*) malloc(sizeof(int));
-                    
+
                     std::string mainFileDirectory = std::filesystem::absolute(name).parent_path().string();
                     lex_error _Status = _lex(&_newtokens, _FileBuffer, _FileBufferLen, ftokenCount);
 
@@ -67,7 +67,7 @@ lex_error _preprocess(ltoken** tokens, int tCount, std::string dirPath, std::str
                         elprint(_Status, _FileBuffer);
                         exit(_Status.ec);
                     }
-                    _Status = _preprocess(&_newtokens, *ftokenCount, mainFileDirectory, contentOut, lenOut); 
+                    _Status = _preprocess(&_newtokens, *ftokenCount, mainFileDirectory, contentOut, lenOut);
 
                     if(_Status.ec < 0)
                     {
@@ -88,7 +88,7 @@ lex_error _preprocess(ltoken** tokens, int tCount, std::string dirPath, std::str
 
                     tCount += *ftokenCount;
                     _At += *ftokenCount;
-                    
+
                     int lineCount = 0;
                     int c = -1;
                     while(++c < _FileBufferLen)
@@ -99,7 +99,7 @@ lex_error _preprocess(ltoken** tokens, int tCount, std::string dirPath, std::str
                         t._Trace.at += _FileBufferLen;
                         t._Trace.line += lineCount;
                     }
-                    
+    
                     contentOut.insert(0, _FileBuffer);
                 }
                 else if (seq(name._Repr, "macro"))
@@ -109,21 +109,22 @@ lex_error _preprocess(ltoken** tokens, int tCount, std::string dirPath, std::str
 
                     _Macros.insert({name, value});
 
-                    int _Caret = _At;
+                    int _Caret = _At + 1;
 
                     ltoken* d_toks = *tokens;
-
                     while(_Caret < tCount)
                     {
-                        ltoken& at = d_toks[++_Caret];
-
-                        if (name == at._Repr)
+                        ltoken& at = d_toks[_Caret];
+                        if (seq(name.data(), at._Repr) && at._Type != STRING_LITERAL)
                         {
+                            tprintr(at);
                             at._Repr = name.data();
+                            ltoken& tok = d_toks[_Caret];
 
-
-                            _lex(&d_toks[_Caret], at._Repr, name.length(), nullptr);
+                            lex_error err = _lex_s(tok, contentOut.data());
+                            if (err.ec < 0) return err;
                         }
+                        _Caret++;
                     }
 
                 }
@@ -139,13 +140,27 @@ lex_error _preprocess(ltoken** tokens, int tCount, std::string dirPath, std::str
 }
 #endif
 
-lex_error _lex(ltoken** _gout, char *content, int clen, int *lenOut)
+// emulates _lex with only 1 token
+lex_error _lex_s(ltoken& t, char *content)
+{
+    char* at = content + sizeof(char) * t._Trace.at;
+
+
+    int o = 0;
+    ltoken* gout = (ltoken*) malloc(sizeof(ltoken));
+    // gen length error
+    lex_error l = _lex(&gout, at, strlen(t._Repr), &o, 1);
+    if (l.ec < 0) return l;
+    t = gout[0];
+    return l;
+}
+lex_error _lex(ltoken** _gout, char *content, int clen, int *lenOut, int glen)
 {
     lex_error __STACK_TRACE = {0, 0, 0, 0, 0};
 
     int _TokenCount = 0;
 
-    int _GenLength = INITIAL_GEN_CAPACITY;
+    int _GenLength = glen;
 
     LEX_IFFAIL(*_gout);
 
@@ -179,7 +194,7 @@ lex_error _lex(ltoken** _gout, char *content, int clen, int *lenOut)
                     __STACK_TRACE.cpos += i - __STACK_TRACE.at > 0 ? i - __STACK_TRACE.at : 1;
                     __STACK_TRACE.at = i;
                     if(content[i] == '*' &&
-                    i + 1 < clen && content[i + 1] == '/') 
+                    i + 1 < clen && content[i + 1] == '/')
                     {
                         i ++;
                         break;
@@ -197,7 +212,7 @@ lex_error _lex(ltoken** _gout, char *content, int clen, int *lenOut)
                     LEX_ERROR(CLOSING_TOKEN_NOT_FOUND);
                 continue;
             }
-            else if (content[i + 1] == '/') 
+            else if (content[i + 1] == '/')
             {
                 while(i + 1 < clen && (c = content[++i]) != '\n')
                     __STACK_TRACE.cpos += i - __STACK_TRACE.at > 0 ? i - __STACK_TRACE.at : 1;
@@ -224,14 +239,14 @@ _stradd:
             {
                 i+=2;
                 _S += size;
-                while (i + 1 < clen && isalpha((n = content[i + 1])) || n == '_')
+                while (i + 1 < clen && (isalpha((n = content[i + 1])) || n == '_'))
                     i++;
                 size = i + 1 - l;
                 _Word = (char*)realloc(_Word, (size + 1) * sizeof(char));
                 LEX_IFFAIL(_Word);
                 isSelector = true;
                 goto _stradd;
-                
+
             }
             _Word[size] = '\0';
 
@@ -243,6 +258,7 @@ _stradd:
             if(isSelector)
             {
                 // this::thing::
+                t._Type = SELECTOR;
             }else
             {
                 if ((_ExtraInfo = istypedef(_Word)) != -1)
@@ -250,7 +266,7 @@ _stradd:
                 else if ((_t = iskwd(_Word, &_ExtraInfo)) != UNKNOWN)
                     t._Type = _t;
             }
-            
+
 
             t._Info = _ExtraInfo;
 
@@ -295,7 +311,7 @@ _stradd:
         else if (IS_OP(c) || c == '=')
         {
             int mallocSize = 2;
-            if(i + 1 < clen && (IS_OP(content[i + 1]) || content[i + 1] == '=')) 
+            if(i + 1 < clen && (IS_OP(content[i + 1]) || content[i + 1] == '='))
             {
                 i++;
                 mallocSize = 3;
@@ -334,12 +350,11 @@ _stradd:
                 i++;
             }
 
-            i++;
 
-            int size = i - l;
+            int size = (i + 1) - l;
             char *_Num = (char *)malloc((size + 1) * sizeof(char));
             LEX_IFFAIL(_Num);
-            
+
             strncpy(_Num, &content[l], size);
             _Num[size] = '\0';
 
@@ -356,7 +371,7 @@ _stradd:
 
                 if(content[x] == ']')
                     LEX_ERROR(EXPECTED_VALUE);
-                
+
                 while(x < clen && content[++x] != ']');
 
                 if(x == clen) LEX_ERROR(CLOSING_TOKEN_NOT_FOUND);
@@ -364,9 +379,9 @@ _stradd:
                 ch = (char*)malloc(sizeof(char) * ((x - i) + 3));
 
             }else ch = (char *)malloc(sizeof(char) * 3);
-            
+
             LEX_IFFAIL(ch);
-            
+
             ch[0] = c;
             ch[1] = content[++i];
             ch[2] = '\0';
@@ -416,18 +431,18 @@ _stradd:
                 case ']':
                     type = CLOSED_SQBR;
                     break;
-               
+
             }
 
             (*_gout)[_TokenCount++] = {ch, type, c, __STACK_TRACE};
         }
     }
-    
+
     *_gout = (ltoken*)realloc(*_gout, sizeof(ltoken) * _TokenCount);
 
     LEX_IFFAIL(*_gout);
- 
+
     *lenOut = _TokenCount;
- 
+
     return __STACK_TRACE;
 }

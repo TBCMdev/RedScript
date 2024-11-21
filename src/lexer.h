@@ -23,15 +23,17 @@
 #define LEX_ERROR(_ec) {__STACK_TRACE.ec = _ec;__STACK_TRACE.at = i;  return __STACK_TRACE;}
 
 #define tprint(t) printf("{type:%d, repr:%s, info:%d}", t->_Type, t->_Repr, t->_Info);
+#define tprintr(t) printf("{type:%d, repr:%s, info:%d}", t._Type, t._Repr, t._Info);
 
 
-lex_error _lex(ltoken**, char*, int, int*);
+lex_error _lex(ltoken**, char*, int, int*, int = INITIAL_GEN_CAPACITY);
 
 
 // The preprocessor is written in c++.
 #ifdef __cplusplus
 std::vector<std::string> retrieveInbuiltFiles();
 lex_error _preprocess(ltoken**, int, std::string, std::string&, int* = nullptr);
+lex_error _lex_s(ltoken&, char*);
 #endif
 
 // util
